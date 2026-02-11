@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Data / Sensitive
+cookies.txt
+data/
+.env
+
+# Logs
+*.log
+
+# Generated reports
+reports/
