@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${template.id != null ? '템플릿 수정' : '새 템플릿'}">템플릿</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper" style="max-width: 900px;">
+    <div class="home-card">
+        <h1 class="form-title" th:text="${template.id != null ? '템플릿 수정' : '새 템플릿'}"></h1>
+
+        <form th:action="${template.id != null ? '/prompt-templates/' + template.id : '/prompt-templates'}" method="post">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="name">템플릿 이름 *</label>
+                    <input type="text" id="name" name="name" th:value="${template.name}" required maxlength="200"
+                           placeholder="예: 간결한 보고서 템플릿">
+                </div>
+                <div class="form-group">
+                    <label for="promptType">유형 *</label>
+                    <select id="promptType" name="promptType" required>
+                        <option th:each="t : ${types}" th:value="${t}" th:text="${t.displayName}"
+                                th:selected="${template.promptType == t}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="content">프롬프트 내용 *</label>
+                <textarea id="content" name="content" rows="20" required
+                          placeholder="AI에게 전달할 시스템 프롬프트를 입력하세요. 출력 형식, 규칙 등을 포함하세요."
+                          th:text="${template.content}"></textarea>
+                <span id="contentCounter" class="char-counter"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label" style="background:none; padding:0;">
+                    <input type="checkbox" name="isDefault" value="true" th:checked="${template.isDefault()}">
+                    <span>기본 템플릿으로 설정</span>
+                </label>
+                <span class="char-counter" style="text-align:left;">해당 유형에서 기본 템플릿으로 사용됩니다. 기존 기본 설정은 해제됩니다.</span>
+            </div>
+
+            <div class="form-submit-row">
+                <button type="submit" class="btn-primary" th:text="${template.id != null ? '수정' : '생성'}"></button>
+                <a th:href="@{/prompt-templates}" class="btn-secondary">취소</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script>initCharCounter('content', 'contentCounter');</script>
+</body>
+</html>

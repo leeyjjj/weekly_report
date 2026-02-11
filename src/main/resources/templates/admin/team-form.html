@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${team.id != null} ? '팀 수정' : '팀 등록'">팀</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1 th:text="${team.id != null} ? '팀 수정' : '팀 등록'"></h1>
+                <p th:text="${team.id != null} ? '팀 정보를 수정합니다' : '새 팀을 등록합니다'"></p>
+            </div>
+            <a th:href="@{/admin/teams}" class="btn-secondary" style="padding:10px 20px;">목록으로</a>
+        </div>
+
+        <form th:action="${team.id != null} ? @{/admin/teams/{id}(id=${team.id})} : @{/admin/teams}"
+              method="post" class="form-container">
+            <div class="form-group">
+                <label for="name">팀 이름 *</label>
+                <input type="text" id="name" name="name" th:value="${team.name}" required
+                       maxlength="100" placeholder="예: 개발팀">
+            </div>
+            <div class="form-actions">
+                <a th:href="@{/admin/teams}" class="btn-secondary">취소</a>
+                <button type="submit" class="btn-primary"
+                        th:text="${team.id != null} ? '수정' : '등록'">등록</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

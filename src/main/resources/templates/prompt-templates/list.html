@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프롬프트 템플릿 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="dashboard-wrapper">
+    <div class="dash-header">
+        <div>
+            <h1 class="dash-title">프롬프트 템플릿 관리</h1>
+            <p class="dash-subtitle">AI 보고서 생성에 사용되는 프롬프트를 관리합니다</p>
+        </div>
+        <a th:href="@{/prompt-templates/new}" class="btn-primary">+ 새 템플릿</a>
+    </div>
+
+    <div class="dash-card">
+        <div class="dash-card-header">
+            <h2>템플릿 목록</h2>
+            <span class="result-count" th:text="'총 ' + ${#lists.size(templates)} + '건'"></span>
+        </div>
+
+        <div th:if="${#lists.isEmpty(templates)}" class="dash-empty">
+            <p class="empty-title">템플릿이 없습니다</p>
+            <p class="empty-sub">앱을 재시작하면 기본 템플릿이 생성됩니다.</p>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(templates)}" class="table-wrap">
+            <table class="dash-table">
+                <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>유형</th>
+                    <th>기본</th>
+                    <th>수정일</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${templates}" th:onclick="'openPreview(' + ${t.id} + ')'" style="cursor:pointer;">
+                    <td>
+                        <span class="project-name" th:text="${t.name}"></span>
+                    </td>
+                    <td>
+                        <span class="status-badge"
+                              th:classappend="${t.promptType == T(com.weekly.entity.PromptType).GENERAL ? 'IN_PROGRESS' : 'READY'}"
+                              th:text="${t.promptType.displayName}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${t.isDefault()}" class="teams-badge sent">기본</span>
+                        <span th:unless="${t.isDefault()}" class="teams-badge unsent">-</span>
+                    </td>
+                    <td>
+                        <span th:text="${#temporals.format(t.updatedAt, 'MM/dd HH:mm')}"></span>
+                    </td>
+                    <td style="display:flex; gap:6px; align-items:center;" onclick="event.stopPropagation();">
+                        <a th:href="@{/prompt-templates/{id}/edit(id=${t.id})}" class="btn-view">수정</a>
+                        <form th:unless="${t.isDefault()}" th:action="@{/prompt-templates/{id}/set-default(id=${t.id})}" method="post" style="display:inline">
+                            <button type="submit" class="btn-sm">기본 설정</button>
+                        </form>
+                        <form th:id="'deleteForm-' + ${t.id}" th:action="@{/prompt-templates/{id}/delete(id=${t.id})}" method="post" style="display:inline">
+                            <button type="button" th:onclick="'Modal.open(\'deleteForm-' + ${t.id} + '\')'" class="btn-sm" style="color:var(--error-text);">삭제</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden template content for preview -->
+<th:block th:each="t : ${templates}">
+    <div th:id="'tpl-name-' + ${t.id}" class="hidden" th:text="${t.name}"></div>
+    <div th:id="'tpl-type-' + ${t.id}" class="hidden" th:text="${t.promptType.displayName}"></div>
+    <div th:id="'tpl-content-' + ${t.id}" class="hidden" th:text="${t.content}"></div>
+</th:block>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal-overlay hidden" onclick="if(event.target===this)closePreview()">
+    <div class="modal-box preview-modal-box">
+        <div class="preview-modal-header">
+            <div>
+                <h2 id="previewName"></h2>
+                <span id="previewType" class="status-badge" style="margin-top:4px;"></span>
+            </div>
+            <button class="btn-remove" onclick="closePreview()" aria-label="닫기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <pre id="previewContent" class="preview-modal-content"></pre>
+    </div>
+</div>
+
+<script>
+function openPreview(id) {
+    var name = document.getElementById('tpl-name-' + id).textContent;
+    var type = document.getElementById('tpl-type-' + id).textContent;
+    var content = document.getElementById('tpl-content-' + id).textContent;
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewType').textContent = type;
+    document.getElementById('previewContent').textContent = content;
+    document.getElementById('previewModal').classList.remove('hidden');
+}
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePreview();
+});
+</script>
+<script th:if="${message}">
+document.addEventListener('DOMContentLoaded', function() {
+    Toast.show('[[${message}]]', 'success');
+});
+</script>
+</body>
+</html>

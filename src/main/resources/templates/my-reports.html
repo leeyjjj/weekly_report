@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 보고서</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1 th:text="${user.name} + '님의 보고서'"></h1>
+                <p>
+                    <span th:if="${user.team != null}" th:text="${user.team.name} + ' · '"></span>
+                    <span th:text="'총 ' + ${reports.totalElements} + '건의 보고서'"></span>
+                </p>
+            </div>
+            <a th:href="@{/}" class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                새 보고서
+            </a>
+        </div>
+
+        <div th:if="${reports.totalElements == 0}" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p>아직 작성한 보고서가 없습니다.</p>
+            <a href="/" class="btn-primary">첫 보고서 작성하기</a>
+        </div>
+
+        <div th:if="${reports.totalElements > 0}">
+            <table class="list-table">
+                <colgroup>
+                    <col style="width:90px;">
+                    <col>
+                    <col style="width:70px;">
+                    <col style="width:80px;">
+                    <col style="width:240px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>작성일</th>
+                    <th>내용 미리보기</th>
+                    <th>AI</th>
+                    <th>Teams</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="report : ${reports.content}">
+                    <td style="white-space:nowrap;">
+                        <span th:text="${#temporals.format(report.createdAt, 'yyyy-MM-dd')}"></span>
+                    </td>
+                    <td>
+                        <span class="preview-text" th:text="${report.summary != null ? report.summary : #strings.abbreviate(@markdownRenderer.toPlainText(report.generalReportMd), 100)}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${report.llmProvider != null}" class="ai-badge"
+                              th:text="${#strings.contains(report.llmProvider, 'Gemini') ? 'Gemini' : (#strings.contains(report.llmProvider, 'EXAONE') ? 'EXAONE' : report.llmProvider)}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${report.teamsSent}" class="teams-badge sent">전송됨</span>
+                        <span th:unless="${report.teamsSent}" class="teams-badge unsent">미전송</span>
+                    </td>
+                    <td class="action-cell">
+                        <a th:href="@{/reports/{id}(id=${report.id})}" class="btn-sm">보기</a>
+                        <a th:href="@{/reports/{id}/copy(id=${report.id})}" class="btn-sm">복사</a>
+                        <a th:href="@{/reports/{id}/edit(id=${report.id})}" class="btn-sm">수정</a>
+                        <form th:id="'deleteForm-' + ${report.id}" th:action="@{/reports/{id}/delete(id=${report.id})}" method="post" style="display:inline">
+                            <input type="hidden" name="userId" th:value="${user.id}">
+                            <button type="button" th:onclick="'Modal.open(\'deleteForm-' + ${report.id} + '\')'" class="btn-sm danger">삭제</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div th:if="${reports.totalPages > 1}" class="pagination-bar">
+                <a th:if="${reports.number > 0}"
+                   th:href="@{/my-reports(userId=${user.id}, page=${reports.number - 1})}"
+                   class="page-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+                    이전
+                </a>
+                <div class="page-numbers">
+                    <span th:each="i : ${#numbers.sequence(0, reports.totalPages - 1)}">
+                        <a th:href="@{/my-reports(userId=${user.id}, page=${i})}"
+                           th:text="${i + 1}"
+                           th:classappend="${i == reports.number} ? 'active' : ''"
+                           class="page-num"></a>
+                    </span>
+                </div>
+                <a th:if="${reports.number < reports.totalPages - 1}"
+                   th:href="@{/my-reports(userId=${user.id}, page=${reports.number + 1})}"
+                   class="page-btn">
+                    다음
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

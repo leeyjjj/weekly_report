@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회의실 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1>회의실 관리</h1>
+                <p>회의실을 등록하고 관리합니다</p>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <a th:href="@{/reservations}" class="btn-secondary" style="padding:10px 20px;">캘린더</a>
+                <a th:href="@{/rooms/new}" class="btn-primary">+ 회의실 등록</a>
+            </div>
+        </div>
+
+        <div th:if="${message}" class="flash-message success" th:text="${message}"></div>
+
+        <div th:if="${rooms.isEmpty()}" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9h18M9 21V9"/>
+            </svg>
+            <p>등록된 회의실이 없습니다.</p>
+            <a th:href="@{/rooms/new}" class="btn-primary">첫 회의실 등록하기</a>
+        </div>
+
+        <div th:if="${!rooms.isEmpty()}">
+            <table class="list-table">
+                <colgroup>
+                    <col style="width:150px;">
+                    <col>
+                    <col style="width:80px;">
+                    <col style="width:200px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>이름</th>
+                    <th>설명</th>
+                    <th>상태</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="room : ${rooms}" th:classappend="${!room.active} ? 'inactive-row' : ''">
+                    <td th:text="${room.name}"></td>
+                    <td>
+                        <span class="preview-text" th:text="${room.description ?: '-'}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${room.active}" class="teams-badge sent">활성</span>
+                        <span th:unless="${room.active}" class="teams-badge unsent">비활성</span>
+                    </td>
+                    <td class="action-cell">
+                        <a th:href="@{/rooms/{id}/edit(id=${room.id})}" class="btn-sm">수정</a>
+                        <form th:if="${room.active}" th:id="'deleteForm-' + ${room.id}" th:action="@{/rooms/{id}/delete(id=${room.id})}" method="post" style="display:inline">
+                            <button type="button" th:onclick="'Modal.open(\\'deleteForm-' + ${room.id} + '\\')'" class="btn-sm danger">비활성화</button>
+                        </form>
+                        <form th:unless="${room.active}" th:action="@{/rooms/{id}/activate(id=${room.id})}" method="post" style="display:inline">
+                            <button type="submit" class="btn-sm">활성화</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

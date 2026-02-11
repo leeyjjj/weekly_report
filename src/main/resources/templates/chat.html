@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅 입력</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .chat-container {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            padding: 20px;
+        }
+        .chat-header {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px 16px 0 0;
+            padding: 20px 24px;
+        }
+        .chat-header h1 {
+            font-size: 1.2rem;
+            margin: 0 0 12px 0;
+            color: var(--text-primary);
+        }
+        .chat-header .chat-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .chat-header .chat-options select,
+        .chat-header .chat-options input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .chat-bubble {
+            align-self: flex-end;
+            max-width: 80%;
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 16px 16px 4px 16px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            position: relative;
+            word-break: break-word;
+        }
+        .chat-bubble .bubble-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+        }
+        .chat-bubble .bubble-delete {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--error-text, #e53e3e);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-bubble:hover .bubble-delete {
+            display: flex;
+        }
+        .chat-input-area {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-top: none;
+            padding: 16px 24px;
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input-area input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .chat-input-area input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+        .chat-input-area .chat-send-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 24px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        .chat-input-area .chat-send-btn:hover {
+            opacity: 0.85;
+        }
+        .chat-footer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-footer .msg-count {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .chat-footer .chat-actions {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>채팅으로 보고서 작성</h1>
+        <div class="chat-options">
+            <select id="userSelect">
+                <option value="">-- 사용자 선택 --</option>
+                <option th:each="user : ${users}" th:value="${user.id}"
+                        th:text="${user.team != null ? user.name + ' (' + user.team.name + ')' : user.name}"
+                        th:selected="${currentUserId != null && user.id == currentUserId}"></option>
+            </select>
+            <input type="date" id="periodStart">
+            <span style="align-self:center; color:var(--text-secondary)">~</span>
+            <input type="date" id="periodEnd">
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty" id="emptyMsg" th:if="${messages == null || messages.isEmpty()}">
+            업무 내용을 하나씩 입력해주세요.<br>입력이 끝나면 "보고서 생성" 버튼을 누르세요.
+        </div>
+        <div th:if="${messages != null}" th:each="msg : ${messages}" class="chat-bubble" th:data-id="${msg.id}">
+            <span th:text="${msg.content}"></span>
+            <div class="bubble-time" th:text="${#temporals.format(msg.createdAt, 'HH:mm')}"></div>
+            <button class="bubble-delete" onclick="deleteMsg(this)" title="삭제">&times;</button>
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="업무 내용 입력... (Enter로 전송)"
+               maxlength="2000" autocomplete="off">
+        <button class="chat-send-btn" onclick="sendMsg()">전송</button>
+    </div>
+
+    <div class="chat-footer">
+        <span class="msg-count" id="msgCount">
+            <span id="countNum" th:text="${messages != null ? messages.size() : 0}">0</span>건 입력됨
+        </span>
+        <div class="chat-actions">
+            <button class="btn-secondary" style="padding:8px 16px; font-size:0.85rem;" onclick="clearAll()">전체 삭제</button>
+            <form th:action="@{/chat/generate}" method="post" id="generateForm" style="display:inline;">
+                <input type="hidden" name="periodStart" id="formPeriodStart">
+                <input type="hidden" name="periodEnd" id="formPeriodEnd">
+                <button type="submit" class="btn-primary" style="padding:8px 20px; font-size:0.85rem;">보고서 생성</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:if="${error}" style="display:none;" id="flashError" th:text="${error}"></div>
+
+<div th:replace="~{fragments/loading :: loading}"></div>
+<script th:replace="~{fragments/loading :: loading-script}"></script>
+<script>
+attachLoading('generateForm', '보고서 생성 중...', '채팅 입력 내용으로 보고서를 작성하고 있습니다.');
+</script>
+
+<script>
+(function() {
+    var s = document.getElementById('periodStart');
+    var e = document.getElementById('periodEnd');
+    var today = new Date();
+    var day = today.getDay();
+    var mon = new Date(today);
+    mon.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+    var fri = new Date(mon);
+    fri.setDate(mon.getDate() + 4);
+    s.value = mon.toISOString().slice(0,10);
+    e.value = fri.toISOString().slice(0,10);
+
+    // scroll to bottom
+    var container = document.getElementById('chatMessages');
+    container.scrollTop = container.scrollHeight;
+
+    // flash error
+    var err = document.getElementById('flashError');
+    if (err && err.textContent) {
+        Toast.show(err.textContent, 'error', 5000);
+    }
+})();
+
+var chatInput = document.getElementById('chatInput');
+chatInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMsg();
+    }
+});
+
+document.getElementById('generateForm').addEventListener('submit', function() {
+    document.getElementById('formPeriodStart').value = document.getElementById('periodStart').value;
+    document.getElementById('formPeriodEnd').value = document.getElementById('periodEnd').value;
+});
+
+function sendMsg() {
+    var input = document.getElementById('chatInput');
+    var content = input.value.trim();
+    if (!content) return;
+
+    var userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        Toast.show('사용자를 선택해주세요.', 'error');
+        return;
+    }
+
+    input.disabled = true;
+
+    fetch('/chat/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({userId: userId, content: content})
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.error) {
+            Toast.show(data.error, 'error');
+            return;
+        }
+        addBubble(data.id, data.content, data.time);
+        input.value = '';
+        updateCount(1);
+    })
+    .catch(function() {
+        Toast.show('전송 실패', 'error');
+    })
+    .finally(function() {
+        input.disabled = false;
+        input.focus();
+    });
+}
+
+function addBubble(id, content, time) {
+    var empty = document.getElementById('emptyMsg');
+    if (empty) empty.remove();
+
+    var container = document.getElementById('chatMessages');
+    var div = document.createElement('div');
+    div.className = 'chat-bubble';
+    div.dataset.id = id;
+    div.innerHTML = '<span>' + escapeHtml(content) + '</span>' +
+        '<div class="bubble-time">' + time + '</div>' +
+        '<button class="bubble-delete" onclick="deleteMsg(this)" title="삭제">&times;</button>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function deleteMsg(btn) {
+    var bubble = btn.closest('.chat-bubble');
+    var id = bubble.dataset.id;
+    fetch('/chat/delete/' + id, {method: 'POST'})
+        .then(function(res) { return res.json(); })
+        .then(function() {
+            bubble.remove();
+            updateCount(-1);
+            if (document.querySelectorAll('.chat-bubble').length === 0) {
+                var container = document.getElementById('chatMessages');
+                container.innerHTML = '<div class="chat-empty" id="emptyMsg">업무 내용을 하나씩 입력해주세요.<br>입력이 끝나면 "보고서 생성" 버튼을 누르세요.</div>';
+            }
+        });
+}
+
+function clearAll() {
+    if (!confirm('입력한 메시지를 모두 삭제하시겠습니까?')) return;
+    fetch('/chat/clear', {method: 'POST'})
+        .then(function(res) { return res.json(); })
+        .then(function() {
+            var container = document.getElementById('chatMessages');
+            container.innerHTML = '<div class="chat-empty" id="emptyMsg">업무 내용을 하나씩 입력해주세요.<br>입력이 끝나면 "보고서 생성" 버튼을 누르세요.</div>';
+            document.getElementById('countNum').textContent = '0';
+        });
+}
+
+function updateCount(delta) {
+    var el = document.getElementById('countNum');
+    el.textContent = parseInt(el.textContent) + delta;
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+</body>
+</html>

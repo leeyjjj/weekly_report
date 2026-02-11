@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${reservation != null && reservation.id != null} ? '예약 수정' : '회의실 예약'">회의실 예약</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1 th:text="${reservation != null && reservation.id != null} ? '예약 수정' : '회의실 예약'"></h1>
+                <p th:text="${reservation != null && reservation.id != null} ? '예약 정보를 수정합니다' : '새 회의실 예약을 생성합니다'"></p>
+            </div>
+            <a th:href="@{/reservations}" class="btn-secondary" style="padding:10px 20px;">캘린더로</a>
+        </div>
+
+        <div th:if="${error}" class="flash-message error" th:text="${error}"></div>
+
+        <form th:action="${reservation != null && reservation.id != null} ? @{/reservations/{id}(id=${reservation.id})} : @{/reservations}"
+              method="post" class="form-container">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="roomId">회의실 *</label>
+                    <select id="roomId" name="roomId" required
+                            th:disabled="${reservation != null && reservation.id != null}">
+                        <option value="">선택하세요</option>
+                        <option th:each="room : ${rooms}" th:value="${room.id}"
+                                th:text="${room.name}"
+                                th:selected="${(reservation != null && reservation.id != null && reservation.room.id == room.id) || (reservation == null && room.id == selectedRoomId)}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userId">예약자 *</label>
+                    <select id="userId" name="userId" required
+                            th:disabled="${reservation != null && reservation.id != null}">
+                        <option value="">선택하세요</option>
+                        <option th:each="user : ${users}" th:value="${user.id}"
+                                th:text="${user.team != null ? user.name + ' (' + user.team.name + ')' : user.name}"
+                                th:selected="${(reservation != null && reservation.id != null && reservation.user.id == user.id) || (reservation == null && session.currentUserId != null && user.id == session.currentUserId)}"></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="title">제목 *</label>
+                <input type="text" id="title" name="title" required maxlength="200"
+                       placeholder="예: 주간 정기회의"
+                       th:value="${reservation != null && reservation.id != null} ? ${reservation.title} : ''">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="startTime">시작 시간 *</label>
+                    <input type="datetime-local" id="startTime" name="startTime" required
+                           th:value="${reservation != null && reservation.id != null}
+                               ? ${#temporals.format(reservation.startTime, 'yyyy-MM-dd''T''HH:mm')}
+                               : ${selectedDate != null ? (selectedHour != null ? selectedDate.toString() + 'T' + (selectedHour < 10 ? '0' + selectedHour : selectedHour) + ':00' : selectedDate.toString() + 'T09:00') : ''}">
+                </div>
+                <div class="form-group">
+                    <label for="endTime">종료 시간 *</label>
+                    <input type="datetime-local" id="endTime" name="endTime" required
+                           th:value="${reservation != null && reservation.id != null}
+                               ? ${#temporals.format(reservation.endTime, 'yyyy-MM-dd''T''HH:mm')}
+                               : ${selectedDate != null ? (selectedHour != null ? selectedDate.toString() + 'T' + (selectedHour < 9 ? '0' + (selectedHour + 1) : selectedHour + 1) + ':00' : selectedDate.toString() + 'T10:00') : ''}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">설명</label>
+                <textarea id="description" name="description" rows="2" maxlength="500"
+                          placeholder="회의 내용 (선택사항)"
+                          th:text="${reservation != null && reservation.id != null} ? ${reservation.description} : ''"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="attendees">참석자</label>
+                <input type="text" id="attendees" name="attendees" maxlength="1000"
+                       placeholder="쉼표로 구분 (예: 홍길동, 김철수, 이영희)"
+                       th:value="${reservation != null && reservation.id != null} ? ${reservation.attendees} : ''">
+            </div>
+
+            <!-- Recurring (신규 등록 시에만 표시) -->
+            <th:block th:if="${reservation == null || reservation.id == null}">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="recurringCheck" onchange="toggleRecurring()">
+                        반복 예약
+                    </label>
+                </div>
+                <div id="recurringOptions" class="hidden" style="margin-left:8px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recurType">반복 유형</label>
+                            <select id="recurType" name="recurType">
+                                <option value="weekly">매주 같은 요일</option>
+                                <option value="daily">매일 (평일)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="recurWeeks">반복 기간 (주)</label>
+                            <input type="number" id="recurWeeks" name="recurWeeks" value="4" min="1" max="52">
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="recurringInput" name="recurring" value="false">
+            </th:block>
+
+            <div class="form-actions">
+                <a th:href="@{/reservations}" class="btn-secondary">취소</a>
+                <button type="submit" class="btn-primary"
+                        th:text="${reservation != null && reservation.id != null} ? '수정' : '예약하기'">예약하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleRecurring() {
+    var check = document.getElementById('recurringCheck');
+    if (!check) return;
+    var checked = check.checked;
+    document.getElementById('recurringOptions').classList.toggle('hidden', !checked);
+    document.getElementById('recurringInput').value = checked ? 'true' : 'false';
+}
+</script>
+</body>
+</html>

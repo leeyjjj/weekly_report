@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${user.id != null} ? '사용자 수정' : '사용자 등록'">사용자</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1 th:text="${user.id != null} ? '사용자 수정' : '사용자 등록'"></h1>
+                <p th:text="${user.id != null} ? '사용자 정보를 수정합니다' : '새 사용자를 등록합니다'"></p>
+            </div>
+            <a th:href="@{/admin/users}" class="btn-secondary" style="padding:10px 20px;">목록으로</a>
+        </div>
+
+        <form th:action="${user.id != null} ? @{/admin/users/{id}(id=${user.id})} : @{/admin/users}"
+              method="post" class="form-container">
+            <div class="form-group">
+                <label for="name">이름 *</label>
+                <input type="text" id="name" name="name" th:value="${user.name}" required
+                       maxlength="100" placeholder="사용자 이름">
+            </div>
+            <div class="form-group">
+                <label for="email">이메일</label>
+                <input type="email" id="email" name="email" th:value="${user.email}"
+                       maxlength="255" placeholder="example@company.com">
+            </div>
+            <div class="form-group">
+                <label for="teamId">소속 팀</label>
+                <select id="teamId" name="teamId">
+                    <option value="">팀 없음</option>
+                    <option th:each="team : ${teams}"
+                            th:value="${team.id}"
+                            th:text="${team.name}"
+                            th:selected="${user.team != null && user.team.id == team.id}">
+                    </option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <a th:href="@{/admin/users}" class="btn-secondary">취소</a>
+                <button type="submit" class="btn-primary"
+                        th:text="${user.id != null} ? '수정' : '등록'">등록</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

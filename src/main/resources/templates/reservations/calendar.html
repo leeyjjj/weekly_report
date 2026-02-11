@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회의실 예약</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="dashboard-wrapper">
+    <div class="dash-header">
+        <div>
+            <h1 class="dash-title">회의실 예약</h1>
+            <p class="dash-subtitle">주간 캘린더에서 회의실을 예약하세요</p>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a th:href="@{/rooms}" class="btn-secondary" style="padding:10px 20px;">회의실 관리</a>
+            <a th:href="@{/reservations/new}" class="btn-primary">+ 새 예약</a>
+        </div>
+    </div>
+
+    <div th:if="${message}" class="flash-message success" th:text="${message}"></div>
+    <div th:if="${error}" class="flash-message error" th:text="${error}"></div>
+
+    <!-- Week Navigation -->
+    <div class="week-nav">
+        <a th:href="@{/reservations(week=${prevWeek})}" class="week-nav-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg>
+            이전 주
+        </a>
+        <span class="week-nav-title">
+            <span th:text="${weekStart.getYear() + '년 '}"></span>
+            <span th:text="${#temporals.format(weekDays[0], 'MM/dd') + ' ~ ' + #temporals.format(weekDays[4], 'MM/dd')}"></span>
+        </span>
+        <a th:href="@{/reservations(week=${nextWeek})}" class="week-nav-btn">
+            다음 주
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 18l6-6-6-6"/></svg>
+        </a>
+    </div>
+
+    <!-- Calendar -->
+    <div class="dash-card" style="padding:0;">
+        <div class="table-wrap">
+            <table class="calendar-table">
+                <thead>
+                <tr>
+                    <th class="room-col-header">회의실</th>
+                    <th th:each="day : ${weekDays}" class="day-header">
+                        <span class="day-name" th:text="${#temporals.dayOfWeek(day) == 1 ? '월' : (#temporals.dayOfWeek(day) == 2 ? '화' : (#temporals.dayOfWeek(day) == 3 ? '수' : (#temporals.dayOfWeek(day) == 4 ? '목' : '금')))}"></span>
+                        <span class="day-date" th:text="${#temporals.format(day, 'MM/dd')}"></span>
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="room : ${rooms}">
+                    <td class="room-cell">
+                        <span class="room-name" th:text="${room.name}"></span>
+                    </td>
+                    <td th:each="day : ${weekDays}" class="calendar-day-cell">
+                        <div class="day-reservations">
+                            <div th:each="res : ${calendar.get(room.id).get(day)}"
+                                 th:classappend="${res.recurring} ? ' recurring' : ''"
+                                 class="reservation-block">
+                                <span class="res-time"
+                                      th:text="${#temporals.format(res.startTime, 'HH:mm') + '-' + #temporals.format(res.endTime, 'HH:mm')}"></span>
+                                <span class="res-title" th:text="${res.title}"></span>
+                                <span class="res-user" th:text="${res.user.name}"></span>
+                                <div class="res-actions">
+                                    <a th:href="@{/reservations/{id}/edit(id=${res.id})}" class="res-edit-btn" title="수정">✎</a>
+                                    <form th:action="@{/reservations/{id}/cancel(id=${res.id})}" method="post" style="display:inline;">
+                                        <input type="hidden" name="week" th:value="${weekStart}">
+                                        <button type="button" th:onclick="'Modal.open(this.closest(\\'form\\'))'" class="res-cancel-btn" title="취소">×</button>
+                                    </form>
+                                    <form th:if="${res.recurring}"
+                                          th:action="@{/reservations/cancel-recurring}" method="post" style="display:inline;">
+                                        <input type="hidden" name="groupId" th:value="${res.recurringGroupId}">
+                                        <input type="hidden" name="week" th:value="${weekStart}">
+                                        <button type="button" th:onclick="'Modal.open(this.closest(\\'form\\'))'" class="res-cancel-btn recurring-cancel" title="향후 반복 전체 취소">⟳×</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <a th:href="@{/reservations/new(roomId=${room.id}, date=${day})}"
+                               class="empty-slot" title="예약하기">+</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${rooms.isEmpty()}">
+                    <td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                        등록된 회의실이 없습니다. <a th:href="@{/rooms/new}">회의실을 등록</a>해주세요.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>팀 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1>팀 관리</h1>
+                <p>팀을 등록하고 관리합니다</p>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <a th:href="@{/admin/users}" class="btn-secondary" style="padding:10px 20px;">사용자 관리</a>
+                <a th:href="@{/admin/teams/new}" class="btn-primary">+ 팀 등록</a>
+            </div>
+        </div>
+
+        <div th:if="${message}" class="flash-message success" th:text="${message}"></div>
+        <div th:if="${error}" class="flash-message error" th:text="${error}"></div>
+
+        <div th:if="${teams.isEmpty()}" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                <path d="M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+            <p>등록된 팀이 없습니다.</p>
+            <a th:href="@{/admin/teams/new}" class="btn-primary">첫 팀 등록하기</a>
+        </div>
+
+        <div th:if="${!teams.isEmpty()}">
+            <table class="list-table">
+                <colgroup>
+                    <col style="width:50px;">
+                    <col style="width:150px;">
+                    <col style="width:100px;">
+                    <col style="width:150px;">
+                    <col style="width:160px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>팀명</th>
+                    <th>소속 인원</th>
+                    <th>생성일</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="team, iter : ${teams}">
+                    <td th:text="${iter.count}"></td>
+                    <td th:text="${team.name}"></td>
+                    <td th:text="${memberCounts[team.id]} + '명'"></td>
+                    <td th:text="${#temporals.format(team.createdAt, 'yyyy-MM-dd')}"></td>
+                    <td class="action-cell">
+                        <a th:href="@{/admin/teams/{id}/edit(id=${team.id})}" class="btn-sm">수정</a>
+                        <th:block th:if="${memberCounts[team.id] == 0}">
+                            <form th:id="'deleteForm-' + ${team.id}"
+                                  th:action="@{/admin/teams/{id}/delete(id=${team.id})}" method="post"
+                                  style="display:inline">
+                                <button type="button"
+                                        th:onclick="'Modal.open(\\'deleteForm-' + ${team.id} + '\\')'"
+                                        class="btn-sm danger">삭제</button>
+                            </form>
+                        </th:block>
+                        <span th:if="${memberCounts[team.id] > 0}" class="btn-sm"
+                              style="opacity:0.4; cursor:not-allowed;" title="소속 인원이 있어 삭제 불가">삭제</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

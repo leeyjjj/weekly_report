@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주간보고 상세</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <!-- Header -->
+        <div class="detail-header">
+            <span class="detail-avatar" th:text="${#strings.substring(report.user.name, 0, 1)}">U</span>
+            <div class="detail-info">
+                <h1 th:text="${report.user.name} + '님의 주간보고'"></h1>
+                <div class="detail-meta">
+                    <span th:if="${report.user.team != null}" class="meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                        <span th:text="${report.user.team.name}"></span>
+                    </span>
+                    <span th:if="${report.periodStart != null}" class="meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span th:text="${#temporals.format(report.periodStart, 'MM/dd')} + ' ~ ' + ${#temporals.format(report.periodEnd, 'MM/dd')}"></span>
+                    </span>
+                    <span class="meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span th:text="'작성 ' + ${#temporals.format(report.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                    </span>
+                    <span th:if="${report.updatedAt != null}" class="meta-chip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <span th:text="'수정 ' + ${#temporals.format(report.updatedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Badges -->
+        <script th:if="${justCreated}">document.addEventListener('DOMContentLoaded',function(){Toast.show('보고서가 성공적으로 생성되었습니다','success');});</script>
+
+        <div class="badge-group">
+            <div th:if="${report.teamsSent}" class="badge success">Teams 전송 완료</div>
+            <div th:if="${!report.teamsSent && report.teamsError != null}" class="badge error"
+                 th:text="'Teams 전송 실패: ' + ${report.teamsError}"></div>
+            <div th:if="${!report.teamsSent && report.teamsError == null}" class="badge info">Teams 미설정</div>
+        </div>
+
+        <!-- Copy Buttons -->
+        <div class="copy-buttons">
+            <button class="btn-sm" onclick="copyReportText()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                텍스트 복사
+            </button>
+            <button class="btn-sm" onclick="copyReportHtml()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                HTML 복사
+            </button>
+        </div>
+        <div id="rawGeneralMd" class="hidden" th:text="${generalMd}"></div>
+
+        <!-- Report Content -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <div class="section-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <h2>주간보고</h2>
+            </div>
+            <div class="report-content" data-section="general" th:utext="${generalHtml}"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-bar">
+            <a th:href="@{/reports/{id}/pdf(id=${report.id})}" class="btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                PDF 다운로드
+            </a>
+            <a th:href="@{/reports/{id}/edit(id=${report.id})}" class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                수정
+            </a>
+            <form th:action="@{/reports/{id}/resend-teams(id=${report.id})}" method="post" style="display:inline"
+                  onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='전송 중...';">
+                <button type="submit" class="btn-secondary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    Teams 재전송
+                </button>
+            </form>
+            <form th:id="'deleteForm-' + ${report.id}" th:action="@{/reports/{id}/delete(id=${report.id})}" method="post" style="display:inline">
+                <input type="hidden" name="userId" th:value="${report.user.id}">
+                <button type="button" th:onclick="'Modal.open(\'deleteForm-' + ${report.id} + '\')'" class="btn-danger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    삭제
+                </button>
+            </form>
+            <a th:href="@{/reports/{id}/copy(id=${report.id})}" class="btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                복사하여 새 보고서
+            </a>
+            <a th:href="@{/my-reports(userId=${report.user.id})}" class="btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                내 보고서 목록
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+function copyReportText() {
+    var general = document.getElementById('rawGeneralMd').textContent;
+    copyToClipboard(general, '보고서를 텍스트로 복사했습니다');
+}
+function copyReportHtml() {
+    var general = document.querySelector('[data-section="general"]').innerHTML;
+    copyHtmlToClipboard('<h2>주간보고</h2>' + general, '보고서를 HTML로 복사했습니다');
+}
+</script>
+</body>
+</html>

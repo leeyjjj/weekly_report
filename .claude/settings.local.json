@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(gradle wrapper:*)",
+      "Bash(./gradlew compileJava:*)",
+      "Bash(.\\\\gradlew.bat classes:*)",
+      "Bash(cmd /c \"gradlew.bat classes\")",
+      "Bash(cmd /c \"cd /d D:\\\\temp\\\\weekly && gradlew.bat classes\")",
+      "Bash(cmd /c \"D:\\\\temp\\\\weekly\\\\gradlew.bat -p D:\\\\temp\\\\weekly classes 2>&1\")",
+      "Bash(powershell:*)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "Bash(dir:*)",
+      "Bash(./gradlew.bat classes:*)",
+      "Bash(curl:*)",
+      "Bash(bash -c:*)",
+      "Bash(./gradlew classes:*)",
+      "Bash(xargs cat:*)",
+      "Bash(.\\\\gradlew classes:*)",
+      "Bash(cmd /c \"cd /d D:\\\\temp\\\\weekly && gradlew.bat classes 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d D:\\\\temp\\\\weekly && gradlew classes\")",
+      "Bash(D:/temp/weekly/gradlew.bat:*)",
+      "Bash(timeout:*)",
+      "Bash(del:*)",
+      "Bash(cmd /c del D:tempweeklycookies.txt)"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="confirm-modal" id="confirmModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <h3 id="modalTitle">삭제 확인</h3>
+        <p id="modalMessage">정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+        <div class="modal-actions">
+            <button class="btn-danger" onclick="Modal.confirm()">삭제</button>
+            <button class="btn-secondary" onclick="Modal.close()">취소</button>
+        </div>
+    </div>
+</div>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="loading" id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-card">
+        <div class="spinner"></div>
+        <p class="loading-title" id="loadingTitle">보고서 생성 중...</p>
+        <p class="loading-sub" id="loadingSub">AI가 보고서를 작성하고 있습니다. 잠시만 기다려주세요.</p>
+        <div class="loading-steps" id="loadingSteps">
+            <div class="step active" id="step1">주간보고 생성 중...</div>
+            <div class="step" id="step2">저장 및 전송 중...</div>
+        </div>
+    </div>
+</div>
+
+<script th:fragment="loading-script">
+function showLoading(title, sub) {
+    var overlay = document.getElementById('loadingOverlay');
+    if (title) document.getElementById('loadingTitle').textContent = title;
+    if (sub) document.getElementById('loadingSub').textContent = sub;
+    overlay.classList.remove('hidden');
+
+    // 단계별 진행 시뮬레이션
+    var steps = document.querySelectorAll('.loading-steps .step');
+    var delay = 0;
+    steps.forEach(function(step, i) {
+        setTimeout(function() {
+            steps.forEach(function(s) { s.classList.remove('active', 'done'); });
+            for (var j = 0; j < i; j++) steps[j].classList.add('done');
+            step.classList.add('active');
+        }, delay);
+        delay += 4000;
+    });
+}
+
+function attachLoading(formSelector, title, sub) {
+    var forms = document.querySelectorAll(formSelector);
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function() {
+            showLoading(title, sub);
+        });
+    });
+}
+</script>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대시보드</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="dashboard-wrapper">
+    <!-- Page Header -->
+    <div class="dash-header">
+        <div>
+            <h1 class="dash-title">대시보드</h1>
+            <p class="dash-subtitle">팀 주간보고 현황을 한눈에 확인하세요</p>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a th:href="@{/dashboard/export(userId=${selectedUserId}, teamId=${selectedTeamId}, startDate=${startDate}, endDate=${endDate}, keyword=${keyword})}" class="btn-secondary" style="padding:10px 20px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                엑셀
+            </a>
+            <a th:href="@{/}" class="btn-primary">+ 새 보고서</a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" th:text="${totalReports}">0</span>
+                <span class="stat-label">전체 보고서</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" th:text="${thisWeekReports}">0</span>
+                <span class="stat-label">이번 주</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" th:text="${activeUsers}">0</span>
+                <span class="stat-label">참여 인원</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" th:text="${teamsSentCount}">0</span>
+                <span class="stat-label">Teams 전송</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="dash-card">
+        <div class="dash-card-header">
+            <h2>보고서 목록</h2>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="view-toggle">
+                    <button class="active" onclick="switchView('list', this)">목록</button>
+                    <button onclick="switchView('week', this)">주차별</button>
+                </div>
+                <span class="result-count" th:text="'총 ' + ${reports.totalElements} + '건'"></span>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <form th:action="@{/dashboard}" method="get" class="dash-filter">
+            <div class="filter-group">
+                <label for="teamId">팀</label>
+                <select id="teamId" name="teamId">
+                    <option value="">전체</option>
+                    <option th:each="team : ${teams}" th:value="${team.id}" th:text="${team.name}"
+                            th:selected="${team.id == selectedTeamId}"></option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="userId">사용자</label>
+                <select id="userId" name="userId">
+                    <option value="">전체</option>
+                    <option th:each="user : ${users}" th:value="${user.id}"
+                            th:text="${user.team != null ? user.name + ' (' + user.team.name + ')' : user.name}"
+                            th:selected="${user.id == selectedUserId}"></option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="startDate">시작일</label>
+                <input type="date" id="startDate" name="startDate" th:value="${startDate}">
+            </div>
+            <div class="filter-group">
+                <label for="endDate">종료일</label>
+                <input type="date" id="endDate" name="endDate" th:value="${endDate}">
+            </div>
+            <div class="filter-group" style="flex:1;">
+                <label for="keyword">검색</label>
+                <input type="text" id="keyword" name="keyword" th:value="${keyword}" placeholder="보고서 내용 검색...">
+            </div>
+            <button type="submit" class="btn-filter-action">검색</button>
+            <a th:href="@{/dashboard}" class="btn-filter-reset">초기화</a>
+        </form>
+
+        <!-- Empty State -->
+        <div th:if="${reports.totalElements == 0}" class="dash-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="empty-title">보고서가 없습니다</p>
+            <p class="empty-sub">조건에 맞는 보고서가 없거나, 아직 생성된 보고서가 없습니다.</p>
+            <a th:href="@{/}" class="btn-primary" style="margin-top:12px;">첫 보고서 작성하기</a>
+        </div>
+
+        <!-- Table -->
+        <div id="listView" th:if="${reports.totalElements > 0}" class="table-wrap">
+            <table class="dash-table" style="table-layout:fixed;">
+                <colgroup>
+                    <col style="width:110px;">
+                    <col style="width:80px;">
+                    <col style="width:100px;">
+                    <col style="width:70px;">
+                    <col>
+                    <col style="width:80px;">
+                    <col style="width:70px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>작성자</th>
+                    <th>팀</th>
+                    <th>업무기간</th>
+                    <th>작성일</th>
+                    <th>내용 미리보기</th>
+                    <th>Teams</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="report : ${reports.content}" th:onclick="'window.location.href=\'/reports/' + ${report.id} + '\''">
+                    <td>
+                        <div class="user-cell">
+                            <span class="user-avatar" th:text="${#strings.substring(report.user.name, 0, 1)}">U</span>
+                            <span th:text="${report.user.name}"></span>
+                        </div>
+                    </td>
+                    <td>
+                        <span th:if="${report.user.team != null}" class="team-label" th:text="${report.user.team.name}"></span>
+                        <span th:if="${report.user.team == null}" class="team-label none">-</span>
+                    </td>
+                    <td>
+                        <span th:if="${report.periodStart != null}" class="period-label"
+                              th:text="${#temporals.format(report.periodStart, 'MM/dd')} + '~' + ${#temporals.format(report.periodEnd, 'MM/dd')}"></span>
+                        <span th:if="${report.periodStart == null}" class="period-label none">-</span>
+                    </td>
+                    <td>
+                        <div class="date-cell">
+                            <span class="date-main" th:text="${#temporals.format(report.createdAt, 'MM/dd')}"></span>
+                            <span class="date-sub" th:text="${#temporals.format(report.createdAt, 'HH:mm')}"></span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="preview-text" th:text="${report.summary != null ? report.summary : #strings.abbreviate(@markdownRenderer.toPlainText(report.generalReportMd), 100)}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${report.teamsSent}" class="teams-badge sent">전송됨</span>
+                        <span th:unless="${report.teamsSent}" class="teams-badge unsent">미전송</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/reports/{id}(id=${report.id})}" class="btn-view" onclick="event.stopPropagation();">보기</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Weekly Group View -->
+        <div id="weekView" class="hidden" style="padding: 0 28px;">
+            <div th:each="group : ${weekGroups}" class="week-group">
+                <div class="week-group-header">
+                    <span th:text="${group.year() + '년 ' + group.weekNumber() + '주차'}"></span>
+                    <span class="week-range" th:text="${#temporals.format(group.weekStart(), 'MM/dd') + ' ~ ' + #temporals.format(group.weekEnd(), 'MM/dd')}"></span>
+                    <span class="week-count" th:text="${#lists.size(group.reports())} + '건'"></span>
+                </div>
+                <table class="dash-table">
+                    <tbody>
+                    <tr th:each="report : ${group.reports()}" th:onclick="'window.location.href=\'/reports/' + ${report.id} + '\''">
+                        <td>
+                            <div class="user-cell">
+                                <span class="user-avatar" th:text="${#strings.substring(report.user.name, 0, 1)}">U</span>
+                                <span th:text="${report.user.name}"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <span th:if="${report.user.team != null}" class="team-label" th:text="${report.user.team.name}"></span>
+                        </td>
+                        <td>
+                            <div class="date-cell">
+                                <span class="date-main" th:text="${#temporals.format(report.createdAt, 'MM/dd')}"></span>
+                                <span class="date-sub" th:text="${#temporals.format(report.createdAt, 'HH:mm')}"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="preview-text" th:text="${report.summary != null ? report.summary : #strings.abbreviate(@markdownRenderer.toPlainText(report.generalReportMd), 80)}"></span>
+                        </td>
+                        <td>
+                            <a th:href="@{/reports/{id}(id=${report.id})}" class="btn-view" onclick="event.stopPropagation();">보기</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div th:if="${reports.totalPages > 1}" class="dash-pagination">
+            <a th:if="${reports.number > 0}"
+               th:href="@{/dashboard(userId=${selectedUserId}, teamId=${selectedTeamId}, startDate=${startDate}, endDate=${endDate}, keyword=${keyword}, page=${reports.number - 1})}"
+               class="page-btn prev">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+                이전
+            </a>
+            <div class="page-numbers">
+                <span th:each="i : ${#numbers.sequence(0, reports.totalPages - 1)}">
+                    <a th:href="@{/dashboard(userId=${selectedUserId}, teamId=${selectedTeamId}, startDate=${startDate}, endDate=${endDate}, keyword=${keyword}, page=${i})}"
+                       th:text="${i + 1}"
+                       th:classappend="${i == reports.number} ? 'active' : ''"
+                       class="page-num"></a>
+                </span>
+            </div>
+            <a th:if="${reports.number < reports.totalPages - 1}"
+               th:href="@{/dashboard(userId=${selectedUserId}, teamId=${selectedTeamId}, startDate=${startDate}, endDate=${endDate}, keyword=${keyword}, page=${reports.number + 1})}"
+               class="page-btn next">
+                다음
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+        </div>
+    </div>
+</div>
+<script>
+function switchView(mode, btn) {
+    var listView = document.getElementById('listView');
+    var weekView = document.getElementById('weekView');
+    var buttons = btn.parentElement.querySelectorAll('button');
+    buttons.forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    if (mode === 'week') {
+        if (listView) listView.classList.add('hidden');
+        if (weekView) weekView.classList.remove('hidden');
+    } else {
+        if (listView) listView.classList.remove('hidden');
+        if (weekView) weekView.classList.add('hidden');
+    }
+}
+</script>
+</body>
+</html>

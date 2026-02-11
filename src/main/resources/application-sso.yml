@@ -1,0 +1,17 @@
+app:
+  sso:
+    enabled: true
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          microsoft:
+            client-id: ${AZURE_CLIENT_ID:}
+            client-secret: ${AZURE_CLIENT_SECRET:}
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          microsoft:
+            issuer-uri: https://login.microsoftonline.com/${AZURE_TENANT_ID:common}/v2.0

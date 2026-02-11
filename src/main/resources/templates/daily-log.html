@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일별 업무 기록</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="dashboard-wrapper">
+    <div class="dash-header">
+        <div>
+            <h1 class="dash-title">일별 업무 기록</h1>
+            <p class="dash-subtitle">매일 업무를 기록하고, 주말에 한번에 주간보고를 생성하세요</p>
+        </div>
+    </div>
+
+    <!-- User & Week Selector -->
+    <div class="dash-card">
+        <form th:action="@{/daily}" method="get" class="dash-filter">
+            <div class="filter-group">
+                <label for="userId">사용자</label>
+                <select id="userId" name="userId" onchange="this.form.submit()">
+                    <option value="">-- 선택 --</option>
+                    <option th:each="user : ${users}" th:value="${user.id}"
+                            th:text="${user.team != null ? user.name + ' (' + user.team.name + ')' : user.name}"
+                            th:selected="${user.id == selectedUserId}"></option>
+                </select>
+            </div>
+            <input type="hidden" name="week" th:value="${weekMonday}">
+        </form>
+
+        <!-- Week Navigation -->
+        <div th:if="${selectedUserId != null}" class="week-nav">
+            <a th:href="@{/daily(userId=${selectedUserId}, week=${prevWeek})}" class="btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M15 18l-6-6 6-6"/></svg>
+                이전 주
+            </a>
+            <span class="week-nav-title"
+                  th:text="${#temporals.format(weekMonday, 'yyyy년 MM월 dd일')} + ' ~ ' + ${#temporals.format(weekFriday, 'MM월 dd일')}"></span>
+            <a th:href="@{/daily(userId=${selectedUserId}, week=${nextWeek})}" class="btn-sm">
+                다음 주
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+        </div>
+    </div>
+
+    <!-- Daily Cards -->
+    <div th:if="${weekLogs != null}" class="daily-grid">
+        <div th:each="entry : ${weekLogs}" class="daily-card">
+            <form th:action="@{/daily/save}" method="post">
+                <input type="hidden" name="userId" th:value="${selectedUserId}">
+                <input type="hidden" name="logDate" th:value="${entry.key}">
+                <input type="hidden" name="week" th:value="${weekMonday}">
+
+                <div class="daily-card-header">
+                    <span class="daily-day"
+                          th:text="${entry.key.dayOfWeek.getDisplayName(T(java.time.format.TextStyle).SHORT, T(java.util.Locale).KOREAN)}"></span>
+                    <span class="daily-date" th:text="${#temporals.format(entry.key, 'MM/dd')}"></span>
+                    <span th:if="${entry.key.equals(T(java.time.LocalDate).now())}" class="daily-today">TODAY</span>
+                    <span th:if="${entry.value != null}" class="daily-saved">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+                        저장됨
+                    </span>
+                </div>
+                <textarea name="content" rows="5"
+                          th:placeholder="'이 날 수행한 업무를 입력하세요...'"
+                          th:text="${entry.value != null ? entry.value.content : ''}"></textarea>
+                <div class="daily-card-footer">
+                    <button type="submit" class="btn-sm">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div th:if="${weekLogs != null}" class="dash-card" style="margin-top: 20px;">
+        <div class="daily-generate-section">
+            <div class="daily-generate-info">
+                <h3>주간보고 생성</h3>
+            </div>
+            <form th:action="@{/daily/generate}" method="post" class="daily-generate-form">
+                <input type="hidden" name="userId" th:value="${selectedUserId}">
+                <input type="hidden" name="week" th:value="${weekMonday}">
+                <div class="filter-group">
+                    <label for="genTpl">보고서 템플릿</label>
+                    <select id="genTpl" name="generalTemplateId">
+                        <option value="">기본</option>
+                        <option th:each="t : ${generalTemplates}" th:value="${t.id}"
+                                th:text="${t.name + (t.isDefault() ? ' (기본)' : '')}"></option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    주간보고 생성
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div th:if="${selectedUserId == null}" class="dash-card">
+        <div class="dash-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <p class="empty-title">사용자를 선택하세요</p>
+            <p class="empty-sub">사용자를 선택하면 이번 주 일별 기록을 작성할 수 있습니다.</p>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/loading :: loading}"></div>
+
+<script th:replace="~{fragments/loading :: loading-script}"></script>
+<script>
+attachLoading('.daily-generate-form', '주간보고 생성 중...', '일별 기록을 취합하여 주간보고를 작성하고 있습니다.');
+</script>
+<script th:if="${message}">
+document.addEventListener('DOMContentLoaded', function() {
+    Toast.show('[[${message}]]', 'success');
+});
+</script>
+<script th:if="${error}">
+document.addEventListener('DOMContentLoaded', function() {
+    Toast.show('[[${error}]]', 'error');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사용자 관리</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1>사용자 관리</h1>
+                <p>사용자를 등록하고 관리합니다</p>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <a th:href="@{/admin/teams}" class="btn-secondary" style="padding:10px 20px;">팀 관리</a>
+                <a th:href="@{/admin/users/new}" class="btn-primary">+ 사용자 등록</a>
+            </div>
+        </div>
+
+        <div th:if="${message}" class="flash-message success" th:text="${message}"></div>
+        <div th:if="${error}" class="flash-message error" th:text="${error}"></div>
+
+        <div th:if="${users.isEmpty()}" class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                <path d="M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+            <p>등록된 사용자가 없습니다.</p>
+            <a th:href="@{/admin/users/new}" class="btn-primary">첫 사용자 등록하기</a>
+        </div>
+
+        <div th:if="${!users.isEmpty()}">
+            <table class="list-table">
+                <colgroup>
+                    <col style="width:50px;">
+                    <col style="width:120px;">
+                    <col style="width:200px;">
+                    <col style="width:100px;">
+                    <col style="width:150px;">
+                    <col style="width:160px;">
+                </colgroup>
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>이름</th>
+                    <th>이메일</th>
+                    <th>팀</th>
+                    <th>최근 활동</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="user, iter : ${users}">
+                    <td th:text="${iter.count}"></td>
+                    <td th:text="${user.name}"></td>
+                    <td th:text="${user.email ?: '-'}"></td>
+                    <td th:text="${user.team != null ? user.team.name : '-'}"></td>
+                    <td>
+                        <span th:if="${user.lastActiveAt != null}"
+                              th:text="${#temporals.format(user.lastActiveAt, 'MM/dd HH:mm')}"></span>
+                        <span th:unless="${user.lastActiveAt != null}">-</span>
+                    </td>
+                    <td class="action-cell">
+                        <a th:href="@{/admin/users/{id}/edit(id=${user.id})}" class="btn-sm">수정</a>
+                        <form th:id="'deleteForm-' + ${user.id}"
+                              th:action="@{/admin/users/{id}/delete(id=${user.id})}" method="post"
+                              style="display:inline">
+                            <button type="button"
+                                    th:onclick="'Modal.open(\\'deleteForm-' + ${user.id} + '\\')'"
+                                    class="btn-sm danger">삭제</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

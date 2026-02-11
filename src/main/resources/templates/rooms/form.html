@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${room.id != null} ? '회의실 수정' : '회의실 등록'">회의실</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="page-wrapper">
+    <div class="page-card">
+        <div class="my-header">
+            <div class="my-header-info">
+                <h1 th:text="${room.id != null} ? '회의실 수정' : '회의실 등록'"></h1>
+                <p th:text="${room.id != null} ? '회의실 정보를 수정합니다' : '새 회의실을 등록합니다'"></p>
+            </div>
+            <a th:href="@{/rooms}" class="btn-secondary" style="padding:10px 20px;">목록으로</a>
+        </div>
+
+        <form th:action="${room.id != null} ? @{/rooms/{id}(id=${room.id})} : @{/rooms}" method="post" class="form-container">
+            <div class="form-group">
+                <label for="name">회의실 이름 *</label>
+                <input type="text" id="name" name="name" th:value="${room.name}" required maxlength="100" placeholder="예: 대회의실">
+            </div>
+            <div class="form-group">
+                <label for="description">설명</label>
+                <textarea id="description" name="description" rows="3" maxlength="500" placeholder="회의실 설명 (빔프로젝터, 화이트보드 등)" th:text="${room.description}"></textarea>
+            </div>
+            <div class="form-actions">
+                <a th:href="@{/rooms}" class="btn-secondary">취소</a>
+                <button type="submit" class="btn-primary" th:text="${room.id != null} ? '수정' : '등록'">등록</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
