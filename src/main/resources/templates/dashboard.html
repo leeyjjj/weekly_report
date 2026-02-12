@@ -83,6 +83,7 @@
                 <div class="view-toggle">
                     <button class="active" onclick="switchView('list', this)">목록</button>
                     <button onclick="switchView('week', this)">주차별</button>
+                    <button onclick="switchView('timeline', this)">타임라인</button>
                 </div>
                 <span class="result-count" th:text="'총 ' + ${reports.totalElements} + '건'"></span>
             </div>
@@ -232,6 +233,30 @@
             </div>
         </div>
 
+        <!-- Timeline (Gantt) View -->
+        <div id="timelineView" class="hidden" th:if="${reports.totalElements > 0}">
+            <div class="gantt-nav">
+                <button onclick="ganttMove(-14)">&laquo;</button>
+                <button onclick="ganttMove(-7)">&lsaquo;</button>
+                <span class="gantt-nav-title" id="ganttNavTitle"></span>
+                <button onclick="ganttMove(7)">&rsaquo;</button>
+                <button onclick="ganttMove(14)">&raquo;</button>
+            </div>
+            <div class="gantt-wrapper">
+                <div class="gantt-sidebar" id="ganttSidebar"></div>
+                <div class="gantt-chart" id="ganttChart"></div>
+            </div>
+            <!-- raw data for JS -->
+            <div th:each="report : ${reports.content}" class="gantt-raw"
+                 th:data-id="${report.id}"
+                 th:data-user="${report.user.name}"
+                 th:data-team="${report.user.team != null ? report.user.team.name : '미지정'}"
+                 th:data-summary="${report.summary != null ? report.summary : #strings.abbreviate(@markdownRenderer.toPlainText(report.generalReportMd), 60)}"
+                 th:data-start="${report.periodStart != null ? #temporals.format(report.periodStart, 'yyyy-MM-dd') : ''}"
+                 th:data-end="${report.periodEnd != null ? #temporals.format(report.periodEnd, 'yyyy-MM-dd') : ''}"
+                 style="display:none;"></div>
+        </div>
+
         <!-- Pagination -->
         <div th:if="${reports.totalPages > 1}" class="dash-pagination">
             <a th:if="${reports.number > 0}"
@@ -261,16 +286,179 @@
 function switchView(mode, btn) {
     var listView = document.getElementById('listView');
     var weekView = document.getElementById('weekView');
+    var timelineView = document.getElementById('timelineView');
     var buttons = btn.parentElement.querySelectorAll('button');
     buttons.forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
-    if (mode === 'week') {
-        if (listView) listView.classList.add('hidden');
-        if (weekView) weekView.classList.remove('hidden');
-    } else {
-        if (listView) listView.classList.remove('hidden');
-        if (weekView) weekView.classList.add('hidden');
+    if (listView) listView.classList.add('hidden');
+    if (weekView) weekView.classList.add('hidden');
+    if (timelineView) timelineView.classList.add('hidden');
+    if (mode === 'week' && weekView) {
+        weekView.classList.remove('hidden');
+    } else if (mode === 'timeline' && timelineView) {
+        timelineView.classList.remove('hidden');
+        if (!window._ganttBuilt) { initGantt(); window._ganttBuilt = true; }
+    } else if (listView) {
+        listView.classList.remove('hidden');
     }
+}
+
+/* ── Gantt Chart ── */
+var ganttStart; // visible range start date
+var GANTT_DAYS = 21; // show 3 weeks
+var ganttData = [];
+var DAY_NAMES = ['일','월','화','수','목','금','토'];
+var BAR_COLORS = 6;
+
+function initGantt() {
+    var raws = document.querySelectorAll('.gantt-raw');
+    raws.forEach(function(el) {
+        ganttData.push({
+            id: el.dataset.id,
+            user: el.dataset.user,
+            team: el.dataset.team,
+            summary: el.dataset.summary,
+            start: el.dataset.start,
+            end: el.dataset.end
+        });
+    });
+    // default range: this Monday - 7 days
+    var today = new Date();
+    var day = today.getDay();
+    var mon = new Date(today);
+    mon.setDate(today.getDate() - (day === 0 ? 6 : day - 1) - 7);
+    ganttStart = mon;
+    renderGantt();
+}
+
+function ganttMove(days) {
+    ganttStart = new Date(ganttStart);
+    ganttStart.setDate(ganttStart.getDate() + days);
+    renderGantt();
+}
+
+function renderGantt() {
+    var sidebar = document.getElementById('ganttSidebar');
+    var chart = document.getElementById('ganttChart');
+    var title = document.getElementById('ganttNavTitle');
+
+    var endDate = new Date(ganttStart);
+    endDate.setDate(ganttStart.getDate() + GANTT_DAYS - 1);
+    var m1 = (ganttStart.getMonth()+1) + '월 ' + ganttStart.getDate() + '일';
+    var m2 = (endDate.getMonth()+1) + '월 ' + endDate.getDate() + '일';
+    title.textContent = ganttStart.getFullYear() + '년 ' + m1 + ' ~ ' + m2;
+
+    // group by team
+    var teams = {};
+    var teamOrder = [];
+    var teamColorMap = {};
+    var colorIdx = 0;
+    ganttData.forEach(function(d) {
+        if (!teams[d.team]) {
+            teams[d.team] = [];
+            teamOrder.push(d.team);
+            teamColorMap[d.team] = colorIdx % BAR_COLORS;
+            colorIdx++;
+        }
+        teams[d.team].push(d);
+    });
+
+    // build sidebar
+    var sHtml = '<div class="gantt-sidebar-header"><span class="gs-num">#</span><span class="gs-task">보고서</span><span class="gs-user">작성자</span></div>';
+    var num = 1;
+    teamOrder.forEach(function(team) {
+        sHtml += '<div class="gantt-team-row">' + esc(team) + '</div>';
+        teams[team].forEach(function(d) {
+            sHtml += '<div class="gantt-sidebar-row" onclick="window.location.href=\'/reports/' + d.id + '\'">';
+            sHtml += '<span class="gs-num">' + num + '</span>';
+            sHtml += '<span class="gs-task" title="' + esc(d.summary) + '">' + esc(d.summary) + '</span>';
+            sHtml += '<span class="gs-user">' + esc(d.user) + '</span>';
+            sHtml += '</div>';
+            num++;
+        });
+    });
+    sidebar.innerHTML = sHtml;
+
+    // build chart header (dates)
+    var todayStr = toDateStr(new Date());
+    var cHtml = '<div class="gantt-chart-inner">';
+    cHtml += '<div class="gantt-date-header">';
+    for (var i = 0; i < GANTT_DAYS; i++) {
+        var dt = new Date(ganttStart);
+        dt.setDate(ganttStart.getDate() + i);
+        var dow = dt.getDay();
+        var cls = 'gantt-day-cell';
+        if (toDateStr(dt) === todayStr) cls += ' today';
+        if (dow === 0 || dow === 6) cls += ' weekend';
+        cHtml += '<div class="' + cls + '">';
+        cHtml += '<span class="gantt-day-num">' + dt.getDate() + '</span>';
+        cHtml += '<span class="gantt-day-name">' + DAY_NAMES[dow] + '</span>';
+        cHtml += '</div>';
+    }
+    cHtml += '</div>';
+
+    // build chart body rows
+    teamOrder.forEach(function(team) {
+        // team spacer row
+        cHtml += '<div class="gantt-team-spacer">';
+        for (var i = 0; i < GANTT_DAYS; i++) {
+            cHtml += '<div class="gantt-body-cell" style="height:32px;"></div>';
+        }
+        cHtml += '</div>';
+
+        teams[team].forEach(function(d) {
+            cHtml += '<div class="gantt-body-row">';
+            for (var i = 0; i < GANTT_DAYS; i++) {
+                var dt = new Date(ganttStart);
+                dt.setDate(ganttStart.getDate() + i);
+                var dow = dt.getDay();
+                var cls = 'gantt-body-cell';
+                if (toDateStr(dt) === todayStr) cls += ' today';
+                if (dow === 0 || dow === 6) cls += ' weekend';
+                cHtml += '<div class="' + cls + '"></div>';
+            }
+            // bar
+            if (d.start && d.end) {
+                var barStart = dayDiff(ganttStart, parseDate(d.start));
+                var barEnd = dayDiff(ganttStart, parseDate(d.end));
+                var clampStart = Math.max(0, barStart);
+                var clampEnd = Math.min(GANTT_DAYS - 1, barEnd);
+                if (clampStart <= clampEnd) {
+                    var left = clampStart * 44 + 2;
+                    var width = (clampEnd - clampStart + 1) * 44 - 4;
+                    cHtml += '<div class="gantt-bar gantt-bar-' + teamColorMap[d.team] + '" style="left:' + left + 'px;width:' + width + 'px;" onclick="window.location.href=\'/reports/' + d.id + '\'" title="' + esc(d.summary) + '">';
+                    cHtml += esc(d.summary);
+                    cHtml += '</div>';
+                }
+            }
+            cHtml += '</div>';
+        });
+    });
+    cHtml += '</div>';
+    chart.innerHTML = cHtml;
+
+    // sync scroll
+    sidebar.onscroll = function() { chart.scrollTop = sidebar.scrollTop; };
+    chart.onscroll = function() { sidebar.scrollTop = chart.scrollTop; };
+}
+
+function parseDate(str) {
+    var parts = str.split('-');
+    return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+}
+function dayDiff(from, to) {
+    var f = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+    var t = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+    return Math.round((t - f) / 86400000);
+}
+function toDateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function esc(s) {
+    if (!s) return '';
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
 }
 </script>
 </body>

@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-1234}
+      MYSQL_DATABASE: weekly_report
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/weekly_report
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      EXAONE_API_KEY: ${EXAONE_API_KEY:-}
+      EXAONE_MODEL: ${EXAONE_MODEL:-exaone3.5:7.8b}
+      EXAONE_BASE_URL: ${EXAONE_BASE_URL:-http://localhost:11434}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-5-20250929}
+      TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL:-}
+      REPORT_OUTPUT_DIR: /app/reports
+    volumes:
+      - report_data:/app/reports
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mariadb_data:
+  report_data:
